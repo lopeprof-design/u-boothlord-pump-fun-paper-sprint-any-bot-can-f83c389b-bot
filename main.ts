@@ -1,12 +1,12 @@
-// Tide Runner — a launch sniper with a trailing stop for the pump.fun replay.
+// Tide Runner — a launch sniper with fast exits for the pump.fun replay.
 //
 // Lesson from the dev window: by the time a coin's tape proves demand, the
 // move is already over — chasing momentum buys the top. The only edge left
 // is being first: buy in the first few slots after a curve is created,
-// before the crowd arrives, with a small stake, and then let a runner run.
-// There is no fixed take-profit; the exit is a hard stop under cost, a
-// trailing stop under the best value seen, or a hard time limit. Losers are
-// cut fast, winners are allowed to go many multiples, and the five
+// before the crowd arrives, with a small stake, and then get out within
+// seconds: the launch pop is the whole trade. The exit is a take-profit at
+// +15%, a stop-loss at -12%, a hard time limit of about 30 slots, or the
+// creator selling — whichever comes first. Losers are cut fast and the five
 // open-position slots keep turning over to fresh launches.
 //
 // Two filters keep the worst launches out: the creator must not have sold,
@@ -28,14 +28,12 @@ const MAX_AGE_SLOTS = 5; // a first buy must be decided within 5 slots of launch
 const MIN_REAL_SOL_LAMPORTS = (LAMPORTS_PER_SOL * 3n) / 10n; // 0.3 SOL real reserve
 const MAX_BUYERS = 5; // more distinct buyers this early smells like a bundle
 const MAX_DEV_BUY_LAMPORTS = (LAMPORTS_PER_SOL * 5n) / 2n; // 2.5 SOL creator buy
-// No fixed take-profit: a runner is allowed to run. Exits are a hard stop
-// 20% under cost, a trailing stop 20% under the best value seen, and a
-// hard time limit.
-const STOP_LOSS_NUM = 80n; // sell at -20% of cost
+// Fast exits: the launch pop is the whole trade.
+const TAKE_PROFIT_NUM = 115n; // sell at +15% of cost
+const TAKE_PROFIT_DEN = 100n;
+const STOP_LOSS_NUM = 88n; // sell at -12% of cost
 const STOP_LOSS_DEN = 100n;
-const TRAIL_NUM = 80n; // sell after falling 20% from the peak value
-const TRAIL_DEN = 100n;
-const MAX_HOLD_SLOTS = 7200; // never hold past ~25 minutes
+const MAX_HOLD_SLOTS = 30; // never hold past ~30 slots after the buy
 const SLIPPAGE_BPS = 10_000; // fill at the market: never refuse a fill over the price moving in the latency
 
 // --- per-coin tape ------------------------------------------------------------
@@ -61,9 +59,6 @@ interface Tape {
   complete: boolean;
   decided: boolean; // a first buy was decided (or the coin aged out)
   boughtSlot: number; // slot the buy was decided on, -1 when never bought
-  /** Best value/cost ratio seen while holding, as a fraction. */
-  peakNum: bigint;
-  peakDen: bigint;
 }
 
 const tapes = new Map<Pubkey, Tape>();
@@ -97,8 +92,6 @@ function watchBatch(batch: Batch): void {
         complete: false,
         decided: false,
         boughtSlot: -1,
-        peakNum: 0n,
-        peakDen: 1n,
       };
       tapes.set(e.mint, tape);
     } else if (e.event === 'TradeEvent') {
@@ -162,21 +155,14 @@ await runBot({
       if (tape === undefined || curve === undefined || curve.complete) continue;
       const tokens = holding.token_amount;
       const cost = holding.cost_lamports;
-      // Current value in lamports: tokens * quote / token reserves.
-      const value = (tokens * curve.virtual_quote_reserves) / curve.virtual_token_reserves;
       // value/cost as a fraction: tokens*q / (t*cost).
       const num = tokens * curve.virtual_quote_reserves;
       const den = curve.virtual_token_reserves * cost;
-      if (cmpFrac(tape.peakNum, tape.peakDen, num, den) < 0) {
-        tape.peakNum = num;
-        tape.peakDen = den;
-      }
+      const takeProfit = num * TAKE_PROFIT_DEN >= TAKE_PROFIT_NUM * den;
       const stopLoss = num * STOP_LOSS_DEN <= STOP_LOSS_NUM * den;
-      // Trailing stop: current value at most 80% of the best value seen.
-      const trailed = tape.peakNum > 0n && num * tape.peakDen * TRAIL_DEN <= TRAIL_NUM * tape.peakNum * den;
       const stale = tape.boughtSlot >= 0 && batch.slot - tape.boughtSlot > MAX_HOLD_SLOTS;
-      void value;
-      if (stopLoss || trailed || stale) {
+      const devDumped = tape.devSold;
+      if (takeProfit || stopLoss || stale || devDumped) {
         if (orders.length < caps.max_orders_per_batch) {
           orders.push({ side: 'sell', mint, token_amount: tokens, max_slippage_bps: SLIPPAGE_BPS });
         }
