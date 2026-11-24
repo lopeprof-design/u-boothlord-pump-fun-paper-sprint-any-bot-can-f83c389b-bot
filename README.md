@@ -4,7 +4,7 @@
 [![rank](https://make.fun/badge/u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b/lopeprof-design/u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b-bot/rank.svg)](https://make.fun/bounty/u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b)
 [![reward](https://make.fun/badge/u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b/lopeprof-design/u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b-bot/reward.svg)](https://make.fun/bounty/u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b?utm_source=github&utm_medium=readme&utm_campaign=u-boothlord-pump-fun-paper-sprint-any-bot-can-f83c389b)
 
-Tide Runner: a quick-flip paper-trading bot for pump.fun bonding curves. It buys only young coins that prove real demand early — several distinct buyers, net SOL flowing in, price up from launch and still near its young high — then exits fast on a take-profit (+35%), a stop-loss (-12%), a trailing stop (-10% from peak), or a hard time limit. One small 0.03 SOL buy per coin, so a false start costs little and the five open-position slots keep turning over to fresh coins.
+Tide Runner: a launch-sniper paper-trading bot for pump.fun bonding curves. It buys in the first 3 slots after a curve is created — before the crowd arrives — with a small 0.05 SOL stake, skipping launches where the creator already sold, anyone else already sold, or more than 3 wallets piled in at once. Then it gets out within seconds on a take-profit (+15%), a stop-loss (-12%), a hard time limit of 10 slots, or the creator selling. A false start costs little and the five open-position slots keep turning over to fresh launches.
 
 ## Run it
 
