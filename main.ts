@@ -24,16 +24,16 @@ import { LAMPORTS_PER_SOL, runBot, type Batch, type BotState, type OrderInput, t
 
 const STAKE_LAMPORTS = (LAMPORTS_PER_SOL * 5n) / 100n; // 0.05 SOL per coin
 const MIN_BUY_LAMPORTS = LAMPORTS_PER_SOL / 100n; // 0.01 SOL: the guardrail floor
-const MAX_AGE_SLOTS = 5; // a first buy must be decided within 5 slots of launch
+const MAX_AGE_SLOTS = 3; // a first buy must be decided within 3 slots of launch
 const MIN_REAL_SOL_LAMPORTS = (LAMPORTS_PER_SOL * 3n) / 10n; // 0.3 SOL real reserve
-const MAX_BUYERS = 5; // more distinct buyers this early smells like a bundle
+const MAX_BUYERS = 3; // more distinct buyers this early smells like a bundle
 const MAX_DEV_BUY_LAMPORTS = (LAMPORTS_PER_SOL * 5n) / 2n; // 2.5 SOL creator buy
 // Fast exits: the launch pop is the whole trade.
 const TAKE_PROFIT_NUM = 115n; // sell at +15% of cost
 const TAKE_PROFIT_DEN = 100n;
 const STOP_LOSS_NUM = 88n; // sell at -12% of cost
 const STOP_LOSS_DEN = 100n;
-const MAX_HOLD_SLOTS = 30; // never hold past ~30 slots after the buy
+const MAX_HOLD_SLOTS = 10; // never hold past ~10 slots after the buy
 const SLIPPAGE_BPS = 10_000; // fill at the market: never refuse a fill over the price moving in the latency
 
 // --- per-coin tape ------------------------------------------------------------
