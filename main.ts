@@ -29,7 +29,7 @@ const MIN_REAL_SOL_LAMPORTS = (LAMPORTS_PER_SOL * 3n) / 10n; // 0.3 SOL real res
 const MAX_BUYERS = 3; // more distinct buyers this early smells like a bundle
 const MAX_DEV_BUY_LAMPORTS = (LAMPORTS_PER_SOL * 5n) / 2n; // 2.5 SOL creator buy
 // Fast exits: the launch pop is the whole trade.
-const TAKE_PROFIT_NUM = 125n; // sell at +25% of cost
+const TAKE_PROFIT_NUM = 115n; // sell at +15% of cost
 const TAKE_PROFIT_DEN = 100n;
 const STOP_LOSS_NUM = 88n; // sell at -12% of cost
 const STOP_LOSS_DEN = 100n;
