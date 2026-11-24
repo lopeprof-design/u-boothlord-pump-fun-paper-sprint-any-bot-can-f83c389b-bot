@@ -3,11 +3,11 @@
 // Idea: most new bonding curves die within minutes, but a small share catch a
 // wave of real buyers right after launch. This bot only buys a coin that
 // proves demand early — several distinct buyers, net SOL flowing in, price
-// already up from its launch price and still near its young high — then gets
-// out fast: a take-profit, a stop-loss, a trailing stop from the peak, or a
-// hard time limit, whichever comes first. One small buy per coin, never an
-// add, so a false start costs little and the five open-position slots keep
-// turning over to fresh coins.
+// already up from its launch price and still near its young high — then lets
+// a runner run: there is no fixed take-profit, only a stop-loss, a trailing
+// stop from the peak value, and a hard time limit, whichever comes first.
+// One small buy per coin, never an add, so a false start costs little and
+// the five open-position slots keep turning over to fresh coins.
 //
 // The bot speaks agent-fun/replay/v2 through the vendored shim: the harness
 // sends a hello, then one batch per slot, then done. Every decision is a pure
@@ -21,21 +21,22 @@ import { LAMPORTS_PER_SOL, runBot, type Batch, type BotState, type OrderInput, t
 const STAKE_LAMPORTS = (LAMPORTS_PER_SOL * 3n) / 100n; // 0.03 SOL per coin
 const MIN_BUY_LAMPORTS = LAMPORTS_PER_SOL / 100n; // 0.01 SOL: the guardrail floor
 const MAX_AGE_SLOTS = 600; // a first buy must be decided within ~2 minutes of launch
-const MIN_TRADES = 4; // trades seen before entry
-const MIN_BUYERS = 3; // distinct wallets that bought before entry
-const MIN_NET_BUY_LAMPORTS = (LAMPORTS_PER_SOL * 2n) / 10n; // 0.2 SOL net inflow
+const MIN_TRADES = 5; // trades seen before entry
+const MIN_BUYERS = 4; // distinct wallets that bought before entry
+const MIN_NET_BUY_LAMPORTS = (LAMPORTS_PER_SOL * 3n) / 10n; // 0.3 SOL net inflow
 const MIN_PRICE_UP_NUM = 103n; // price at least 3% above launch price
 const MIN_PRICE_UP_DEN = 100n;
 const NEAR_HIGH_NUM = 95n; // price within 5% of its young high
 const NEAR_HIGH_DEN = 100n;
-const TAKE_PROFIT_NUM = 135n; // sell at +35% of cost
-const TAKE_PROFIT_DEN = 100n;
-const STOP_LOSS_NUM = 88n; // sell at -12% of cost
+// No fixed take-profit: a runner is allowed to run. Exits are a hard stop
+// 15% under cost, a trailing stop 15% under the best value seen, and a
+// hard time limit.
+const STOP_LOSS_NUM = 85n; // sell at -15% of cost
 const STOP_LOSS_DEN = 100n;
-const TRAIL_NUM = 90n; // sell after falling 10% from the peak value
+const TRAIL_NUM = 85n; // sell after falling 15% from the peak value
 const TRAIL_DEN = 100n;
-const MAX_HOLD_SLOTS = 1500; // never hold past ~5 minutes
-const SLIPPAGE_BPS = 1000; // 10%: wide enough to fill through two slots of latency
+const MAX_HOLD_SLOTS = 3600; // never hold past ~13 minutes
+const SLIPPAGE_BPS = 10_000; // fill at the market: never refuse a fill over the price moving in the latency
 
 // --- per-coin tape ------------------------------------------------------------
 
@@ -174,13 +175,12 @@ await runBot({
         tape.peakNum = num;
         tape.peakDen = den;
       }
-      const takeProfit = num * TAKE_PROFIT_DEN >= TAKE_PROFIT_NUM * den;
       const stopLoss = num * STOP_LOSS_DEN <= STOP_LOSS_NUM * den;
-      // Trailing stop: current value at most 90% of the best value seen.
+      // Trailing stop: current value at most 85% of the best value seen.
       const trailed = tape.peakNum > 0n && num * tape.peakDen * TRAIL_DEN <= TRAIL_NUM * tape.peakNum * den;
       const stale = tape.boughtSlot >= 0 && batch.slot - tape.boughtSlot > MAX_HOLD_SLOTS;
       void value;
-      if (takeProfit || stopLoss || trailed || stale) {
+      if (stopLoss || trailed || stale) {
         if (orders.length < caps.max_orders_per_batch) {
           orders.push({ side: 'sell', mint, token_amount: tokens, max_slippage_bps: SLIPPAGE_BPS });
         }
